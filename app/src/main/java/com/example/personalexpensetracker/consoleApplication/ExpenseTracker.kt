@@ -85,7 +85,7 @@ class ExpenseRecord (
 
     // This object is used to generate automatic Record ID everyTime Creating new  Record Object
     companion object {
-        private var idGenerator: Int = 0
+        private var idGenerator: Int = 1
         fun generateRecordId(): Int {
             return ++idGenerator
         }
@@ -118,6 +118,11 @@ class ExpenseTracker  {
     private var userMap : MutableMap<String, User> = mutableMapOf()
     private var expenseTypeMap : MutableMap<String, ExpenseType> = mutableMapOf()
     private var expenseRecordList : MutableList<ExpenseRecord> = mutableListOf()
+
+    init {
+        val expenseType = ExpenseType("uncategorized", "This type is default type")
+        expenseTypeMap["uncategorized"] = expenseType
+    }
 
     // Function to check user credential is correct or not
     fun checkUserCredential(name : String, password : String): Int {
@@ -197,6 +202,7 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
         println("2. Create New ExpenseType")
         println("3. Delete Record")
         println("4. Edit Record")
+        println("5. Display Records")
         println("5. Exit the App")
         print("Enter your choice: ")
 
@@ -238,6 +244,9 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
                 app.displayUserExpenseRecord(userId)
                 print("Enter Record Id to delete the record: ")
                 val recordId = scanner.next() // get Record Id from user to delete the record
+            }
+            5 -> {
+                app.displayUserExpenseRecord(userId)
 
             }
 
@@ -252,7 +261,6 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
 fun main() {
 
     println("Welcome to Personal Expense Tracker")
-
     // Initialization
     val scanner = Scanner(System.`in`)
     val app = ExpenseTracker()
