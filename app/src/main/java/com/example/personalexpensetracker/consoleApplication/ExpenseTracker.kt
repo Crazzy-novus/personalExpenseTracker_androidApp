@@ -34,7 +34,7 @@ class User (
         return this.password == password
     }
 
-    // Setter method to chance user Name
+    // Setter methods
     fun setName(name : String) {
         this.userName = name
     }
@@ -44,8 +44,6 @@ class User (
     fun setIncome (amount: Float) {
         this.income = amount
     }
-
-    // Setter method to update the amount spend
     fun addAmountSpend(amount: Float) {
         this.amountSpend += amount
     }
@@ -84,10 +82,10 @@ class ExpenseType (
     fun getExpenseType() : String {
         return this.expenseType
     }
-
     fun getExpenseTypeId() : Int {
         return this.expenseTypeId
     }
+
     // Method to display Expense Object Details
     fun displayExpenseDetails() {
         println("\n============= Expense Type Details =============")
@@ -119,14 +117,14 @@ class ExpenseRecord(
             return ++idGenerator
         }
     }
+
+    // Getter Methods
     fun getRecordId () : Int {
         return recordId
     }
     fun getUserId() :Int {
         return userId
     }
-
-    // Getter Method
     fun getAmountSpend () : Float {
         return this.amount
     }
@@ -163,21 +161,20 @@ class ExpenseTracker  {
     }
 
     /*
-    Utility Functions to check if the record is available or not
+    Utility Methods
      */
-    // Get user from List
+    // Get user from List using User Name
     private fun getUserFromList(name : String) : User? {
         return userList.find { it.getUserName() == name }
     }
-
-    // Get record From record List
-    private fun getRecordFromList(recordId : Int) : ExpenseRecord? {
-        return expenseRecordList.find { it.getRecordId() == recordId }
-    }
-
-    // Get user from List
+    // Get user from List using User Id
     private fun getUserFromList(userId : Int) : User? {
         return userList.find { it.getUserId() == userId }
+    }
+
+    // Get Expense record From record List
+    private fun getRecordFromList(recordId : Int) : ExpenseRecord? {
+        return expenseRecordList.find { it.getRecordId() == recordId }
     }
 
     // Method to check user credential is correct or not
@@ -230,6 +227,11 @@ class ExpenseTracker  {
         return 1
     }
 
+    // Method to Display User Details
+    fun displayUserDetails(userId: Int) {
+        getUserFromList(userId)!!.displayUserDetails()
+    }
+
     fun isExpenseTypeExist(expenseTypeId : Int) : Boolean {
         return expenseTypeList.find { it.getExpenseTypeId() == expenseTypeId } != null
     }
@@ -243,12 +245,6 @@ class ExpenseTracker  {
             return true
         }
         return false
-    }
-
-
-    // Method to Display User Details
-    fun displayUserDetails(userId: Int) {
-        getUserFromList(userId)!!.displayUserDetails()
     }
 
     //Method to display each expenseType available to make user to select expenseType to record Expense
@@ -301,7 +297,7 @@ class ExpenseTracker  {
 
     // Method to display the expense type of a particular user
     fun displayUserExpenseRecord(userId : Int) {
-        var flag = 0 // To check at least one record is record
+        var flag = 0 // To check at least one Expense record is record
         for (record in expenseRecordList) {
             if (record.getUserId() == userId) {
                 flag = 1
@@ -352,6 +348,13 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
                     date = expenseDate,
                     description = expenseDescription,
                 )
+                if (response == 1) {
+                    println("Recorded Successful")
+                }
+                else {
+                    println("Unknown Error")
+                }
+
             }
             // Create new Expense Type section
             2 -> {
@@ -379,13 +382,19 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
                     println("Error Occurred")
                 }
             }
+            // Edit Record Section
             4 -> {
                 app.displayUserExpenseRecord(userId)
                 print("Enter Record Id to Edit the record: ")
                 val recordId = scanner.nextInt() // get Record Id from user to delete the record
                 println ("Enter the Amount need to Edit:")
                 val amount = scanner.nextFloat()
-                app.editExpenseRecord(recordId, amount)
+                if (app.editExpenseRecord(recordId, amount)) {
+                    println("Record Successfully Edited")
+                }
+                else {
+                    println("Error Occurred")
+                }
             }
             // Displaying User Expense Record Section
             5 -> {
@@ -415,6 +424,7 @@ fun userDetailMenu ( app : ExpenseTracker, scanner : Scanner, userId : Int) {
         val option = scanner.nextInt()
 
         when (option) {
+            // Edit User Name
             1 -> {
                 print("Enter User Name: ")
                 val userName = scanner.next() // Read user input
@@ -422,8 +432,11 @@ fun userDetailMenu ( app : ExpenseTracker, scanner : Scanner, userId : Int) {
                 if (response == 1) {
                     println("Update Successful")
                 }
+                else {
+                    println("Unknown Error")
+                }
             }
-
+            // Edit User Password
             2 -> {
                 print("Enter User Password: ")
                 val password = scanner.next() // Read user input
@@ -431,8 +444,11 @@ fun userDetailMenu ( app : ExpenseTracker, scanner : Scanner, userId : Int) {
                 if (response == 1) {
                     println("Update Successful")
                 }
+                else {
+                    println("Unknown Error")
+                }
             }
-
+            // Edit User Income
             3 -> {
                 print("Enter User Income: ")
                 val income = scanner.nextFloat() // Read user input
@@ -440,10 +456,15 @@ fun userDetailMenu ( app : ExpenseTracker, scanner : Scanner, userId : Int) {
                 if (response == 1) {
                     println("Update Successful")
                 }
+                else {
+                    println("Unknown Error")
+                }
             }
+            // Display User Details
             4 -> {
                 app.displayUserDetails(userId)
             }
+            // Record Expense Part
             5 -> {
                 recordUserExpense(app, scanner, userId)
             }
@@ -474,6 +495,7 @@ fun main() {
         val option = scanner.nextInt()
 
         when (option) {
+            // Login User Section
             1 -> {
                 print("Enter User Name: ")
                 val userName = scanner.next() // Read user input
@@ -484,6 +506,7 @@ fun main() {
                     userDetailMenu(app, scanner, userId = response)
                 }
             }
+            // Sign in user Section
             2 -> {
                 print("Enter User Name: ")
                 val userName = scanner.next() // Read user input
