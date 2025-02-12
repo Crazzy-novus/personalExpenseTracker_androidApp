@@ -29,20 +29,22 @@ class User (
         return this.userName
     }
 
-    // Method to verify the user name and password
+    // Method to verify the password of the user
     fun isPasswordCorrect(password : String) :Boolean {
         return this.password == password
     }
 
-    // Setter methods
+    // Setter methods to set value for the private member User name
     fun setName(name : String) {
         this.userName = name
     }
+    // Setter methods to set value for the private member User password
     fun setPassword(password: String) {
         this.password = password
     }
-    fun setIncome (amount: Float) {
-        this.income = amount
+    // Setter methods to set value for the private member Income
+    fun setIncome (incomeAmount: Float) {
+        this.income = incomeAmount
     }
     fun addAmountSpend(amount: Float) {
         this.amountSpend += amount
@@ -112,7 +114,7 @@ class ExpenseRecord(
 
 //     This object is used to generate automatic Record ID everyTime Creating new  Record Object
     companion object {
-        private var idGenerator: Int = 1
+        private var idGenerator: Int = 0
         fun generateRecordId(): Int {
             return ++idGenerator
         }
@@ -163,6 +165,7 @@ class ExpenseTracker  {
     /*
     Utility Methods
      */
+
     // Get user from List using User Name
     private fun getUserFromList(name : String) : User? {
         return userList.find { it.getUserName() == name }
@@ -198,6 +201,10 @@ class ExpenseTracker  {
     // Method to Create new user
     fun signUpUser(name : String, password: String, income: Float) : Int {
         // Create new User and return the user Id
+        if (getUserFromList(name) != null) {
+            println ("User Already exists Please Login ")
+            return -1
+        }
         val user = User(
             userName = name, password = password,
             income = income,
@@ -213,6 +220,7 @@ class ExpenseTracker  {
         user!!.setName(userName)
         return 1
     }
+
     // Method to change user Password
     fun editUserPassword(userId : Int, password : String) : Int {
         val user = getUserFromList(userId)
@@ -223,7 +231,7 @@ class ExpenseTracker  {
     // Method to change user Income
     fun editUserIncome(userId : Int, amount: Float) : Int {
         val user = getUserFromList(userId)
-        user!!.setIncome(amount)
+        user!!.setIncome(incomeAmount = amount)
         return 1
     }
 
@@ -232,6 +240,7 @@ class ExpenseTracker  {
         getUserFromList(userId)!!.displayUserDetails()
     }
 
+    // Method to check Particular expense Type is present in the expense Type list
     fun isExpenseTypeExist(expenseTypeId : Int) : Boolean {
         return expenseTypeList.find { it.getExpenseTypeId() == expenseTypeId } != null
     }
@@ -262,8 +271,22 @@ class ExpenseTracker  {
         val record = ExpenseRecord(expenseId, userId, amount, date, description)
         expenseRecordList.add(record)
         val user = getUserFromList(userId)
-        user!!.addAmountSpend(amount)
+        user!!.addAmountSpend(amount) //  Update the amount spend in user Object as expense ie recorded
         return 1
+    }
+
+    // Method to edit Record
+    fun editExpenseRecord(recordId : Int, amount : Float) : Boolean {
+        val record = getRecordFromList(recordId)
+        if (record != null) {
+            // Subtract the existing amount in amount spend of user
+            val user = getUserFromList(record.getUserId())
+            val amountDiff = record.getAmountSpend() - amount // Calculate the amount different and update the user Object
+            record.setRecordAmount(amount)
+            user!!.addAmountSpend(-amountDiff)
+            return true
+        }
+        return false
     }
 
     // Method to delete user Expense Record
@@ -276,20 +299,6 @@ class ExpenseTracker  {
             user!!.addAmountSpend(-expenseRecordList[recordIndex].getAmountSpend()) // The amount need to be subtract from amount spend in user Object
             // Delete the record at that particular index
             expenseRecordList.removeAt(recordIndex)
-            return true
-        }
-        return false
-    }
-
-    // Method to edit Record
-    fun editExpenseRecord(recordId : Int, amount : Float) : Boolean {
-        val record = getRecordFromList(recordId)
-        if (record != null) {
-            // Subtract the existing amount in amount spend of user
-            val user = getUserFromList(record.getUserId())
-            val amountDiff = record.getAmountSpend() - amount // Calculate the amount different and update the user Object
-            record.setRecordAmount(amount)
-            user!!.addAmountSpend(-amountDiff)
             return true
         }
         return false
@@ -311,7 +320,7 @@ class ExpenseTracker  {
         }
     }
 }
-
+// Function to handle Record Expense Section
 fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
 
     // Menu driven to handle Expense Record
@@ -354,7 +363,6 @@ fun recordUserExpense(app : ExpenseTracker, scanner : Scanner, userId : Int) {
                 else {
                     println("Unknown Error")
                 }
-
             }
             // Create new Expense Type section
             2 -> {
@@ -515,7 +523,9 @@ fun main() {
                 print("Enter the Income")
                 val income = scanner.nextFloat()
                 val response = app.signUpUser(userName, password, income)
-                userDetailMenu(app, scanner, userId = response)
+                if (response > 0) {
+                    userDetailMenu(app, scanner, userId = response)
+                }
             }
             3 -> {
                 println("Exiting program. Goodbye!")
