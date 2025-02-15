@@ -1,145 +1,118 @@
 package com.example.personalexpensetracker.consoleApplication
+import SUCCESS
+import FAILURE
 import java.util.Scanner
 /*
     Main class which stores userDetails, ExpenseCategory, User's Expense Record
  */
-class ExpenseTracker {
+class ExpenseTracker
+{
     private var userList: MutableList<User> = mutableListOf()
     private var expenseCategoryList: MutableList<ExpenseCategory> = mutableListOf()
     private var expenseRecordList: MutableList<ExpenseRecord> = mutableListOf()
 
     // Initializing the uncategorized expense as default expense while starting the expenseTrackerApplication
-    init {
+    init
+    {
         val expenseCategory = ExpenseCategory("uncategorized", "This type is default type")
         expenseCategoryList.add(expenseCategory)
     }
 
     //Utility Methods
     // Get user from List using User Id
-    private fun getUserFromList(userId: Int? = null, userName: String? = null): User?
+    private fun getUserFromList(userId: Int? = null, phoneNumber: String? = null): User?
     {
-        if ( userName != null)
-        {
-            return userList.find { it.getUserName() == userName }
+        return when {
+            phoneNumber != null -> userList.find { it.getUserName() == phoneNumber }
+            userId != null -> userList.find { it.getUserId() == userId }
+            else -> null  // Handle the case where both userId and phoneNumber are null
         }
-        return userList.find { it.getUserId() == userId }
     }
 
     // Get Expense record From record List
-    private fun getRecordFromList(recordId: Int): ExpenseRecord? {
+    private fun getRecordFromList(recordId: Int): ExpenseRecord?
+    {
         return expenseRecordList.find { it.getRecordId() == recordId }
     }
 
-    // Method to Create new user
-    private fun signUpUser(name: String, password: String): Response<Int>
+    // Method to Create new user. It takes Name and Password as input and check
+    private fun signUpUser(name: String, phoneNumber : String, password: String): Response<User>
     {
         // Create new User and return the user Id
-        if (getUserFromList(userName = name) != null)
+        if (getUserFromList(phoneNumber = phoneNumber) != null)
         {
             return Response(-1, null, "User Already exists. Please login.")
         }
-        val user = User(name, password)
+        val user = User(name, phoneNumber, password)
         userList.add(user)
-        return Response(1, user.getUserId(), "User created successfully.")
+        return Response(1, user, "User created successfully.")
     }
 
     // Method to check user credential is correct or not
-    private fun checkUserCredential(name: String, password: String): Response<Int>
+    private fun checkUserCredential(phoneNumber: String, password: String): Response<User>
     {
         // Check if the user is already sign in or not
-        val user = getUserFromList(userName = name) ?: return Response(-2, null, "User Not Signed In")
-
+        val user = getUserFromList(phoneNumber = phoneNumber) ?: return Response(-2, null, "User Not Signed In")
         return if (user.isPasswordCorrect(password))
         {
-            Response(1, user.getUserId(), "User Credentials Verified")
+            Response(SUCCESS, user, "User Credentials Verified")
         }
         else
         {
-            Response(-1, null, "Wrong Password")
+            Response(FAILURE, null, "Wrong Password")
         }
     }
 
-    // Method to change user Name
-    private fun editUserName(userId: Int, userName: String): Response<User>
+    // Function to update provided USer details
+    private fun editUserDetails(userId : Int, userName : String? = null,
+        oldPassword : String? = null, newPassword : String? = null, incomeAmount : Float? = null): Response<User>
     {
-        val user = getUserFromList(userId)
-        user?.setName(userName)
-        return Response(1, user, "User Name updated.")
-
-    }
-
-    // Method to change user Password
-    private fun editUserPassword(userId: Int, oldPassword: String, newPassword: String): Response<User>
-    {
-        val user = getUserFromList(userId)
-        if (!user!!.isPasswordCorrect(oldPassword))
+        val user = getUserFromList(userId)?: return Response(FAILURE, null, "User not found!")
+        if (userName != null)
         {
-            return Response(-1, null, "Wrong Old Password Update Failed!!!")
+            user.setName(userName)
         }
-        user.setPassword(newPassword)
-        return Response(1, user, "User Password updated.")
+        if (incomeAmount != null)
+        {
+            user.setIncome(incomeAmount = incomeAmount)
+        }
+        if (oldPassword != null && newPassword != null) {
+            if (!user.isPasswordCorrect(oldPassword)) {
+                return Response(FAILURE, null, "Wrong Old Password Update Failed!!!")
+            }
+            user.setPassword(newPassword)
+        }
+        return Response(SUCCESS, user, "User Details updated.")
     }
-
-    // Method to change user Income
-    private fun setUserIncome(userId: Int, amount: Float): Response<User>
-    {
-        val user = getUserFromList(userId)
-        user!!.setIncome(incomeAmount = amount)
-        return Response(1, user, "User Income updated.")
-    }
-//    private fun editUserDetails(userId : Int, updateField : String, userName : String? = null, password: String? = null, income : Float? = null): Response<User>
-//    {
-//        val user = getUserFromList(userId)
-//        if (userName != null)
-//        {
-//            user?.setName(userName)
-//            return Response(1, user, "User Name updated.")
-//        }
-//        if ()
-//
-//    }
 
     // Method to Display User Details
     private fun displayUserDetails(userId: Int)
     {
-        getUserFromList(userId)!!.displayUserDetails()
+        getUserFromList(userId)?.displayUserDetails()
     }
 
     // Method to check Particular expense Category is present in the expense Category list using ExpenseId
-    private fun isExpenseCategoryExist(expenseCategoryId: Int): Boolean
+    private fun isExpenseCategoryExist(expenseCategory: String? = null, expenseCategoryId: Int? = null): Boolean
     {
+        if (expenseCategory != null)
+        {
+            return expenseCategoryList.any { it.getExpenseCategory() == expenseCategory }
+        }
+        // By default check Expense Category with ID
         return expenseCategoryList.any { it.getExpenseCategoryId() == expenseCategoryId }
-    }
-
-    // Method to check Particular expense Category is present in the expense Category list using ExpenseId
-    private fun isExpenseCategoryExist(expenseCategory: String): Boolean
-    {
-        return expenseCategoryList.any { it.getExpenseCategory() == expenseCategory }
     }
 
     // Method to create new expense If it does not available
     private fun createExpenseCategory(expenseCategoryName: String, description: String): Response<ExpenseCategory?>
     {
         // Check to confirm that the entered Expense type not already exists. Then create new expense type or return false to indicate It already exists
-        if (isExpenseCategoryExist(expenseCategoryName))
+        if (isExpenseCategoryExist(expenseCategory = expenseCategoryName))
         {
-            return Response(-1, null, "Expense Category Already Exists.")
+            return Response(FAILURE, null, "Expense Category Already Exists.")
         }
-
         val expenseCategory = ExpenseCategory(expenseCategoryName, description)
         expenseCategoryList.add(expenseCategory)
-        return Response(1, expenseCategory, "Expense Category Created Successfully.")
-    }
-
-    //Method to display each expenseCategory available to make user to select expenseCategory to record Expense
-    private fun displayExpenseCategory()
-    {
-        println("\n============= Available Expense Category's =============")
-        for (expenseCategory in expenseCategoryList)
-        {
-            expenseCategory.displayExpenseCategoryId()
-        }
-        println("===================================================\n")  // To display details in well structured format
+        return Response(SUCCESS, expenseCategory, "Expense Category Created Successfully.")
     }
 
     // Method to display all Details of expense record
@@ -147,7 +120,7 @@ class ExpenseTracker {
         println("\n============= User Expense Category =============") // To display details in well structured format
         if (expenseCategory != null)
         {
-            expenseCategory.displayExpenseCategory()
+            expenseCategory.displayExpenseCategory(flag = 1)
         }
         else
         {
@@ -156,38 +129,46 @@ class ExpenseTracker {
         println("===============================================\n")
     }
 
-    //Method to record the expense For the user
-    private fun recordExpense( userId: Int, expenseId: Int, amount: Float, date: String, description: String): Response<ExpenseRecord>
+    private fun isUserExpenseRecordExists(userId: Int): Boolean
     {
+        return expenseRecordList.any { it.getUserId() == userId }
+    }
 
+    //Method to record the expense For the user
+    private fun recordNewExpense(userId: Int, expenseId: Int, amount: Float, date: String, description: String): Response<ExpenseRecord>
+    {
         val record = ExpenseRecord(expenseId, userId, amount, date, description)
         expenseRecordList.add(record)
         val user = getUserFromList(userId)
-        user!!.addAmountSpend(amount) //  Update the amount spend in user Object when expense is recorded
-        return Response(1, record, "Expense Record Created")
+        user?.addAmountSpend(amount) //  Update the amount spend in user Object when expense is recorded
+        return Response(SUCCESS, record, "Expense Record Created")
     }
 
     // Method to edit Record
-    private fun editExpenseRecord(recordId: Int, amount: Float): Response<ExpenseRecord>
+    private fun editExpenseRecord(recordId: Int, amount: Float? = null, date : String? = null): Response<ExpenseRecord>
     {
         val record = getRecordFromList(recordId)
-        if (record != null)
-        {
-            // Subtract the existing amount in amount spend of user
-            val user = getUserFromList(record.getUserId())
-            val amountDiff = record.getAmountSpend() - amount // Calculate the amount different and update the user Object
-            record.setRecordAmount(amount)
-            user!!.addAmountSpend(-amountDiff)
-            return Response(1, record, "Expense Record Updated")
+        if (record != null) {
+            if (amount != null) {
+                // Subtract the existing amount in amount spend of user
+                val user = getUserFromList(record.getUserId())
+                val amountDiff = record.getAmountSpend() - amount // Calculate the amount different and update the user Object
+                record.setRecordAmount(amount)
+                user?.addAmountSpend(-amountDiff)
+                return Response(SUCCESS, record, "Expense Record Updated")
+            } else if (date != null) {
+                record.setRecordDate(date)
+                return Response(SUCCESS, record, "Expense Record Updated")
+            }
         }
-        return Response(-1, null, "Unable to update the Record")
+        return Response(FAILURE, null, "Unable to update the Record")
     }
 
     // Method to delete user Expense Record
     private fun deleteUserExpenseRecord(userId: Int, recordId: Int): Response<ExpenseRecord>
     {
         // Get the index the record to delete it
-        val recordIndex = expenseRecordList.indexOfFirst { it.getRecordId() == recordId }
+        val recordIndex = expenseRecordList.indexOfFirst{ it.getRecordId() == recordId }
         if (recordIndex != -1)
         {
             // Before deleting the record amount spend field in User Need to be modified
@@ -195,14 +176,9 @@ class ExpenseTracker {
             user!!.addAmountSpend(-expenseRecordList[recordIndex].getAmountSpend()) // The amount need to be subtract from amount spend in user Object
             // Delete the record at that particular index
             expenseRecordList.removeAt(recordIndex)
-            return Response(1, null, "Expense Record Deleted")
+            return Response(SUCCESS, null, "Expense Record Deleted")
         }
-        return Response(-1, null, "Unable to Delete the Record")
-    }
-
-    private fun isUserExpenseRecordExists(userId: Int): Boolean
-    {
-        return expenseRecordList.any { it.getUserId() == userId }
+        return Response(FAILURE, null, "Unable to Delete the Record")
     }
 
     // Method to display the expense type of a particular user
@@ -229,7 +205,6 @@ class ExpenseTracker {
     // Function to check User enter the correct input format
     private fun getIntegerInput(scanner: Scanner, prompt: String): Int
     {
-
         var tempInputVariable: Int = -1
         do
         {
@@ -237,10 +212,6 @@ class ExpenseTracker {
             {
                 tempInputVariable = scanner.nextInt()
 
-                if (tempInputVariable <= 0)
-                {
-                    print("Input Cannot be Negative/Zero! Please enter a valid $prompt:")
-                }
             }
             else
             {
@@ -283,8 +254,8 @@ class ExpenseTracker {
             println("\n===== Expense Category Menu =====")
             println("Enter the corresponding number to perform that Action")
             println("1 -> Create New ExpenseCategory")
-            //println("2 -> Display Expense Category")
-            println("3 -> Go back to Expense Record Section")
+            println("2 -> Go back to Expense Record Section")
+            print("Enter your choice: ")
             when (getIntegerInput(scanner, "Option"))
             {
                 // Create new Expense Category section
@@ -294,15 +265,17 @@ class ExpenseTracker {
                     val expenseCategory = scanner.nextLine() // Read user input
                     print("Enter Description: ")
                     val description = scanner.nextLine()
-                    val response =
-                        createExpenseCategory(expenseCategory, description)
-                    if (response.responseCode == 1) {
+                    val response = createExpenseCategory(expenseCategory, description)
+                    if (response.responseCode == SUCCESS) {
                         println(response.message)
                         displayExpenseCategoryDetails(response.data!!)
                     } else {
                         println(response.message)
-                        displayExpenseCategory()
+                        displayExpenseCategoryDetails()
                     }
+                }
+                2 -> {
+                    break //  Move Back to Record Expense Category Menu
                 }
             }
         }
@@ -311,7 +284,6 @@ class ExpenseTracker {
     // Function to handle Record Expense Section
     private fun recordUserExpense( scanner: Scanner, userId: Int)
     {
-
         // Menu driven to handle Expense Record
         while (true)
         {
@@ -321,7 +293,7 @@ class ExpenseTracker {
             println("2 -> Edit Record")
             println("3 -> Delete Record")
             println("4 -> Display Records")
-            println("5 -> Display Expense Category")
+            println("5 -> Move to expense Category Menu")
             println("6 -> Go back to user Section")
             print("Enter your choice: ")
 
@@ -329,13 +301,13 @@ class ExpenseTracker {
             {
                 // Record Expense section
                 1 -> {
-                    displayExpenseCategory()
+                    displayExpenseCategoryDetails()
                     print("Enter the Expense Category Id:")
                     val expenseCategoryId = getIntegerInput(scanner, "Expense Category")
-                    if (!isExpenseCategoryExist(expenseCategoryId))
+                    if (!isExpenseCategoryExist(expenseCategoryId = expenseCategoryId))
                     {
                         println("Expense Category Not Found")
-                        continue
+                        continue // To go bak to Menu as no further action need to do as user mentioned category type does not exists
                     }
                     print("Enter Amount Spend:")
                     val expenseAmount = getFloatInput(scanner, "Amount")
@@ -344,14 +316,14 @@ class ExpenseTracker {
                     val expenseDescription = scanner.nextLine()
                     print("Enter the date of expense: ")
                     val expenseDate = scanner.nextLine()
-                    val response = recordExpense(
+                    val response = recordNewExpense(
                         userId,
                         expenseId = expenseCategoryId,
                         amount = expenseAmount,
                         date = expenseDate,
                         description = expenseDescription,
                     )
-                    if (response.responseCode == 1)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
                         displayUserExpenseRecord(userExpenseRecord = response.data)
@@ -373,7 +345,7 @@ class ExpenseTracker {
                         print("Enter the Amount need to Edit:")
                         val amount = getFloatInput(scanner, "Amount")
                         val response = editExpenseRecord(recordId, amount)
-                        if (response.responseCode == 1)
+                        if (response.responseCode == SUCCESS)
                         {
                             println(response.message)
                             displayUserExpenseRecord(userExpenseRecord = response.data)
@@ -394,12 +366,9 @@ class ExpenseTracker {
                     {
                         displayUserExpenseRecord(userId) // Display the available expense Category to select
                         print("Enter Record Id to delete the record: ")
-                        val recordId = getIntegerInput(
-                            scanner,
-                            "Record Id"
-                        ) // get Record Id from user to delete the record subtract 1 as record Index start from 0
+                        val recordId = getIntegerInput(scanner, "Record Id") // get Record Id from user to delete the record subtract 1 as record Index start from 0
                         val response = deleteUserExpenseRecord(userId, recordId)
-                        if (response.responseCode == 1)
+                        if (response.responseCode == SUCCESS)
                         {
                             println(response.message)
                         }
@@ -425,7 +394,6 @@ class ExpenseTracker {
                 6 -> {
                     break
                 }
-
                 else -> println("Invalid choice. Please enter a valid option.")
             }
         }
@@ -433,7 +401,7 @@ class ExpenseTracker {
 
     private fun userSettingsMenu( scanner: Scanner, userId: Int ) {
         // Menu driven to handle User Login and Sign In
-        displayUserDetails(userId) // Display User Details inside the user Settings Menu
+        displayUserDetails(userId) // Display User Details inside the user Settings Menu to let hem known what details already available
         while (true)
         {
             println("\n===== Setting Menu =====")
@@ -450,8 +418,8 @@ class ExpenseTracker {
                     print("Enter User Name: ")
                     scanner.nextLine() // To clear buffer in console
                     val userName = scanner.nextLine()
-                    val response = editUserName(userId, userName)
-                    if (response.responseCode == 1)
+                    val response = editUserDetails(userId, userName = userName)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
                         response.data!!.displayUserDetails()
@@ -468,9 +436,8 @@ class ExpenseTracker {
                         scanner.nextLine() // Get old password to verify the user is authenticated
                     print("Enter New Password: ")
                     val newPassword = scanner.nextLine()
-                    val response =
-                        editUserPassword(userId, oldPassword, newPassword)
-                    if (response.responseCode == 1)
+                    val response = editUserDetails(userId = userId, oldPassword = oldPassword, newPassword = newPassword)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
                         response.data!!.displayUserDetails()
@@ -484,8 +451,8 @@ class ExpenseTracker {
                 3 -> {
                     print("Enter Income: ")
                     val income = getFloatInput(scanner, "Amount")
-                    val response = setUserIncome(userId, income)
-                    if (response.responseCode == 1)
+                    val response = editUserDetails(userId, incomeAmount = income)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
                         response.data!!.displayUserDetails()
@@ -509,7 +476,6 @@ class ExpenseTracker {
     private fun userDetailMenu( scanner: Scanner, userId: Int)
     {
         // Menu driven to handle User Login and Sign In
-        displayUserDetails(userId)
         while (true)
         {
             println("\n===== Main Menu =====")
@@ -530,7 +496,7 @@ class ExpenseTracker {
                 }
                 // User Logout option part
                 3 -> {
-                    userValidationMenu( scanner) // Move back to login in Screen as user logout from the expenseTrackerApplication
+                    println("Logout!!!")
                     break
                 }
 
@@ -540,65 +506,6 @@ class ExpenseTracker {
     }
 
 // User Validation Menu which allow the user to login or logout
-
-    private fun userValidationMenu(scanner: Scanner) {
-        // Menu driven to handle User Login and Sign In
-        while (true)
-        {
-            println("\n===== Menu =====")
-            println("Enter the corresponding number to perform that Action")
-            println("1 -> Login")
-            println("2 -> Sign Up New USer")
-            println("3 -> Exit")
-            print("Enter your choice: ")
-
-            when (getIntegerInput(scanner, "Option"))
-            {
-                // Login User Section
-                1 -> {
-                    print("Enter User Name:")
-                    scanner.nextLine() // To clear buffer in console
-                    val userName = scanner.nextLine()
-                    print("Enter Password: ")
-                    val password = scanner.nextLine()
-                    val response = checkUserCredential(userName, password)
-                    if (response.responseCode == 1)
-                    {
-                        println(response.message)
-                        response.data?.let { userDetailMenu(scanner, userId = it ) } // Check for data is not null
-                    } else {
-                        println(response.message)
-                    }
-                }
-                // Sign in user Section
-                2 -> {
-                    print("Enter User Name: ")
-                    scanner.nextLine() // To clear buffer in console
-                    val userName = scanner.nextLine()
-                    print("Enter Password: ")
-                    val password = scanner.nextLine()
-                    val response = signUpUser(userName, password)
-                    if (response.responseCode == 1)
-                    {
-                        println(response.message)
-                        response.data?.let { userDetailMenu(scanner, userId = it) } //  Check for data is not null
-                    }
-                    else
-                    {
-                        println(response.message)
-                    }
-                }
-
-                3 -> {
-                    println("Exiting program. Goodbye!")
-                    break
-                }
-
-                else -> println("Invalid choice. Please enter a valid option.")
-            }
-        }
-    }
-
     fun main(scanner: Scanner)
     {
         println("Welcome to Personal Expense Tracker")
@@ -609,9 +516,8 @@ class ExpenseTracker {
             println("Enter the corresponding number to perform that Action")
             println("1 -> Sign Up")
             println("2 -> Login")
-            println("2 -> Exit")
+            println("3 -> Exit")
             print("Enter your choice: ")
-
             when (getIntegerInput(scanner, "Option"))
             {
                 // Login User Section
@@ -619,19 +525,16 @@ class ExpenseTracker {
                     print("Enter User Name: ")
                     scanner.nextLine() // To clear buffer in console
                     val userName = scanner.nextLine()
+                    print("Enter PhoneNumber: ")
+                    val phoneNumber = scanner.nextLine()
                     print("Enter Password: ")
                     val password = scanner.nextLine()
-                    val response = signUpUser(userName, password)
-                    if (response.responseCode == 1)
+                    val response = signUpUser(userName, phoneNumber, password)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
-                        response.data?.let {
-                            userDetailMenu(
-
-                                scanner,
-                                userId = it
-                            )
-                        }
+                        response.data?.displayUserDetails() // Display User Details To let the user to known
+                        response.data?.let { userDetailMenu(scanner, userId = it.getUserId()) }
                     } else
                     {
                         println(response.message)
@@ -639,16 +542,16 @@ class ExpenseTracker {
                 }
                 // Login User Section
                 2 -> {
-                    print("Enter User Name:")
+                    print("Enter Phone Number:")
                     scanner.nextLine() // To clear buffer in console
-                    val userName = scanner.nextLine()
+                    val phoneNumber = scanner.nextLine()
                     print("Enter Password: ")
                     val password = scanner.nextLine()
-                    val response = checkUserCredential(userName, password)
-                    if (response.responseCode == 1)
+                    val response = checkUserCredential(phoneNumber, password)
+                    if (response.responseCode == SUCCESS)
                     {
                         println(response.message)
-                        response.data?.let { userDetailMenu( scanner, userId = it) } // Check for data is not null
+                        response.data?.let { userDetailMenu( scanner, userId = it.getUserId()) } // Check for data is not null
                     }
                     else
                     {
